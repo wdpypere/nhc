@@ -157,10 +157,10 @@ function nhc_fs_dfi_gather_data() {
 # mount options.
 #
 # Old syntax:  check_fs_mount fs [ src [ fstype [ options ] ] ]
-# New syntax:  check_fs_mount [ -0 ] [ -r ] [ -s src ] [ -t fstype ] [ -o options ] [ -O mount_options ] [ -e cmd ] [ -E cmd ] -f fs
+# New syntax:  check_fs_mount [ -0 ] [ -r ] [ -s src ] [ -t fstype ] [ -o options ] [ -O mount_options ] [ -e cmd ] [ -E cmd ] [ -C check_cmd ] -f fs
 function check_fs_mount() {
     local FS="$1" SRC="$2" TYPE="$3" OPTIONS="$4"
-    local REMOUNT=0 NONFATAL=0 MOUNT_OPTS="" ACTION="" FOUND_ACTION=""
+    local REMOUNT=0 NONFATAL=0 MOUNT_OPTS="" ACTION="" FOUND_ACTION="" CHECK_FOUND_ACTION=""
     local -a AUTOFS_LIST FS_LIST SRC_LIST TYPE_LIST OPTIONS_LIST
     local i FOUND MSG
 
@@ -172,7 +172,7 @@ function check_fs_mount() {
         [[ -n "$OPTIONS" ]] && OPTIONS_LIST=( "$OPTIONS" )
     else
         OPTIND=1
-        while getopts ":0rE:F:O:e:f:o:s:t:" OPTION ; do
+        while getopts ":0rEC:F:O:e:f:o:s:t:" OPTION ; do
             case "$OPTION" in
                 0) NONFATAL=1 ;;
                 r) REMOUNT=1 ;;
@@ -184,6 +184,7 @@ function check_fs_mount() {
                 t) TYPE_LIST[${#TYPE_LIST[*]}]="$OPTARG" ;;
                 e) ACTION="$OPTARG" ;;
                 E) FOUND_ACTION="$OPTARG" ;;
+                C) CHECK_FOUND_ACTION="$OPTARG" ;;
                 -) ((OPTIND++)) ; break ;;
                 :) die 1 "$CHECK:  Option -$OPTARG requires an argument." ; return 1 ;;
                 \?) die 1 "$CHECK:  Invalid option:  -$OPTARG" ; return 1 ;;
@@ -256,6 +257,12 @@ function check_fs_mount() {
             break
         done
         if [[ "$FOUND" == "1" ]]; then
+            if [[ -n "$CHECK_FOUND_ACTION" ]]; then
+                ${SHELL:-/bin/bash} -c "$CHECK_FOUND_ACTION"
+                if [[ $? -ne 0 ]]; then
+                    return 1
+                fi
+            fi
             # The filesystem is mounted correctly.  Move on to the next one.
             if [[ -n "$FOUND_ACTION" ]]; then
                 ${SHELL:-/bin/bash} -c "$FOUND_ACTION" &
@@ -357,6 +364,7 @@ function check_fs_size() {
     done
     return 0
 }
+
 
 # Check that filesystem ($1) has at least a specified amount ($2) of
 # free space.  This may be either a percentage or a size specifier.
