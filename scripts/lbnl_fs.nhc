@@ -172,7 +172,7 @@ function check_fs_mount() {
         [[ -n "$OPTIONS" ]] && OPTIONS_LIST=( "$OPTIONS" )
     else
         OPTIND=1
-        while getopts ":0rEC:F:O:e:f:o:s:t:" OPTION ; do
+        while getopts ":0rE:C:F:O:e:f:o:s:t:" OPTION ; do
             case "$OPTION" in
                 0) NONFATAL=1 ;;
                 r) REMOUNT=1 ;;
