@@ -572,3 +572,39 @@ function check_fs_iused() {
     done
     return 0
 }
+
+# Checks the local file systems for free space with a warning and critical threshold
+function check_all_local_fs_free() {
+    local THRESHOLD=0, FS_EXCLUSIONS=0
+    local FS_EXCLUDED=( )
+    OPTIND=1
+    while getopts ":t:X:" OPTION ; do
+        case "$OPTION" in
+            t) THRESHOLD="$OPTARG" ;;
+            X) EXCLUDED[$FS_EXCLUSIONS] = "$OPTARG" ; ((FS_EXCLUSIONS++)) ;;
+            -) ((OPTIND++)) ; break ;;
+            :) die 1 "$CHECK:  Option -$OPTARG requires an argument." ; return 1 ;;
+            \?) die 1 "$CHECK:  Invalid option:  -$OPTARG" ; return 1 ;;
+        esac
+    done
+    shift $((OPTIND-1))
+
+    if [[ ${#FS_DEV[*]} -eq 0 ]]; then
+        nhc_fs_mounts_gather_data || {
+            die 1 "$FUNCNAME:  /proc/mounts unreadable"
+            return 1
+        }
+    fi
+
+    for ((i=0; i < ${#FS_MNTPT[*]}; i++)); do
+        if [[ " ${FS_EXCLUSIONS[*]} " == *"${FS_MNTPT[$i]}"* ]]; then
+            continue
+        fi
+        if [ check_fs_size "${FS_MNTPT[$i]}" "$THRESHOLD" ]; then
+            die 1 "$CHECK: Free space on ${FS_MNTPT[$i]} less than $THRESHOLD"
+            return 1
+        fi
+    done
+
+    return 0
+}
