@@ -1,3 +1,4 @@
+#!/bin/bash
 # LBNL NHC - Filesystem Checks
 #
 # Michael Jennings <mej@lbl.gov>
@@ -30,7 +31,7 @@ DFI_PCT=( )
 DFI_MNTPT=( )
 
 function nhc_fs_mounts_gather_data() {
-    local FS_CNT LINE FS i
+    local FS_CNT FS i
     local -a FIELD
 
     if [[ ! -r /proc/mounts ]]; then
@@ -40,11 +41,11 @@ function nhc_fs_mounts_gather_data() {
     # Any filesystems passed as parameters should be actively
     # queried to force auto-mounting to take place.
     for FS in "$@" ; do
-        read -a FIELD < $FS/NHC/non-existent/path/FILE.xxxx
+        read -r -a FIELD < "$FS/NHC/non-existent/path/FILE.xxxx"
     done &>/dev/null
 
     ((FS_CNT=0))
-    while read -a FIELD ; do
+    while read -r -a FIELD ; do
         for ((i=0; i<$FS_CNT; i++)); do
             if [[ "${FS_MNTPT[$i]}" == "${FIELD[1]}" ]]; then
                 FS_DEV[$i]="${FIELD[0]}"
@@ -203,7 +204,7 @@ function check_fs_mount() {
     if [[ ${#FS_DEV[*]} -eq 0 || ${#AUTOFS_LIST[*]} -gt 0 ]]; then
         # Invalidate cache if automount filesystem(s) specified.
         nhc_fs_mounts_gather_data "${AUTOFS_LIST[@]}" || {
-            die 1 "$FUNCNAME:  /proc/mounts unreadable"
+            die 1 "${FUNCNAME[0]}:  /proc/mounts unreadable"
             return 1
         }
     fi
@@ -216,10 +217,10 @@ function check_fs_mount() {
             if [[ "${FS_MNTPT[$i]}" != "$FS" ]]; then
                 continue
             fi
-            if [[ ${#SRC_LIST[*]} > 0 ]]; then
+            if [[ ${#SRC_LIST[*]} -gt 0 ]]; then
                 for SRC in "${SRC_LIST[@]}" ; do
                     if ! mcheck "${FS_DEV[$i]}" "$SRC" ; then
-                        MSG="$FUNCNAME:  $FS mounted from ${FS_DEV[$i]}"
+                        MSG="${FUNCNAME[0]}:  $FS mounted from ${FS_DEV[$i]}"
                         if [[ "${SRC:0:1}" == '!' ]]; then
                             MSG="$MSG (should NOT match ${SRC:1})"
                         else
@@ -229,10 +230,10 @@ function check_fs_mount() {
                     fi
                 done
             fi
-            if [[ ${#TYPE_LIST[*]} > 0 ]]; then
+            if [[ ${#TYPE_LIST[*]} -gt 0 ]]; then
                 for TYPE in "${TYPE_LIST[@]}" ; do
                     if ! mcheck "${FS_TYPE[$i]}" "$TYPE" ; then
-                        MSG="$FUNCNAME:  $FS has incorrect type ${FS_TYPE[$i]}"
+                        MSG="${FUNCNAME[0]}:  $FS has incorrect type ${FS_TYPE[$i]}"
                         if [[ "${TYPE:0:1}" == '!' ]]; then
                             MSG="$MSG (should NOT match ${TYPE:1})"
                         else
@@ -242,10 +243,10 @@ function check_fs_mount() {
                     fi
                 done
             fi
-            if [[ ${#OPTIONS_LIST[*]} > 0 ]]; then
+            if [[ ${#OPTIONS_LIST[*]} -gt 0 ]]; then
                 for OPTIONS in "${OPTIONS_LIST[@]}" ; do
                     if ! mcheck "${FS_OPTS[$i]}" "$OPTIONS" ; then
-                        MSG="$FUNCNAME:  $FS mount options incorrect"
+                        MSG="${FUNCNAME[0]}:  $FS mount options incorrect"
                         if [[ "${OPTIONS:0:1}" == '!' ]]; then
                             MSG="$MSG (should NOT match ${OPTIONS:1})"
                         else
@@ -261,8 +262,7 @@ function check_fs_mount() {
         done
         if [[ "$FOUND" == "1" ]]; then
             if [[ -n "$CHECK_FOUND_ACTION" ]]; then
-                ${SHELL:-/bin/bash} -c "$CHECK_FOUND_ACTION"
-                if [[ $? -ne 0 ]]; then
+                if ${SHELL:-/bin/bash} -c "$CHECK_FOUND_ACTION"; then
                     return 1
                 fi
             fi
@@ -276,7 +276,7 @@ function check_fs_mount() {
         # If we get here, the filesystem is either missing (empty $MSG) or mounted incorrectly (with $MSG).
         if [[ -z "$MSG" && ! -d "$FS" ]]; then
             [[ "$SHELL" != ":" ]] && mkdir -p -m 0755 "$FS"
-            MSG="$FUNCNAME:  $FS not mounted; directory $FS missing (auto-fixed)"
+            MSG="${FUNCNAME[0]}:  $FS not mounted; directory $FS missing (auto-fixed)"
             if [[ "$REMOUNT" == "1" ]]; then
                 ${SHELL:-/bin/bash} -c "$MOUNT_CMD${MOUNT_OPTS:+ -o '$MOUNT_OPTS'} '$FS'" &
             fi
@@ -294,7 +294,7 @@ function check_fs_mount() {
 
         if [[ -z "$MSG" ]]; then
             # The filesystem is not mounted at all.
-            MSG="$FUNCNAME:  $FS not mounted"
+            MSG="${FUNCNAME[0]}:  $FS not mounted"
         fi
         if [[ "$NONFATAL" == 1 ]]; then
             log "$MSG (non-fatal)"
@@ -352,15 +352,15 @@ function check_fs_size() {
         fi
         FS_SIZE=${DF_SIZE[$i]}
         if [[ -n "$MIN_SIZE" && $MIN_SIZE -gt $FS_SIZE ]]; then
-            nhc_common_unparse_size $FS_SIZE FS_SIZE
-            nhc_common_unparse_size $MIN_SIZE MIN_SIZE
-            die 1 "$FUNCNAME:  $FS size $FS_SIZE less than minimum of $MIN_SIZE"
+            nhc_common_unparse_size "$FS_SIZE" FS_SIZE
+            nhc_common_unparse_size "$MIN_SIZE" MIN_SIZE
+            die 1 "${FUNCNAME[0]}:  $FS size $FS_SIZE less than minimum of $MIN_SIZE"
             return 1
         fi
         if [[ -n "$MAX_SIZE" && $MAX_SIZE -lt $FS_SIZE ]]; then
-            nhc_common_unparse_size $FS_SIZE FS_SIZE
-            nhc_common_unparse_size $MAX_SIZE MAX_SIZE
-            die 1 "$FUNCNAME:  $FS size $FS_SIZE exceeds maximum of $MAX_SIZE"
+            nhc_common_unparse_size "$FS_SIZE" FS_SIZE
+            nhc_common_unparse_size "$MAX_SIZE" MAX_SIZE
+            die 1 "${FUNCNAME[0]}:  $FS size $FS_SIZE exceeds maximum of $MAX_SIZE"
             return 1
         fi
         return 0
@@ -394,15 +394,15 @@ function check_fs_free() {
             if [[ "${MIN_FREE/%%}" != "$MIN_FREE" ]]; then
                 if [[ $FREE_PCT -lt "${MIN_FREE/%%}" ]]; then
                     nhc_common_unparse_size $FS_FREE FS_FREE
-                    die 1 "$FUNCNAME:  $FS has only ${FREE_PCT}% free ($FS_FREE), minimum is $MIN_FREE"
+                    die 1 "${FUNCNAME[0]}:  $FS has only ${FREE_PCT}% free ($FS_FREE), minimum is $MIN_FREE"
                     return 1
                 fi
             else
-                nhc_common_parse_size $MIN_FREE MIN_FREE
+                nhc_common_parse_size "$MIN_FREE" MIN_FREE
                 if [[ $FS_FREE -lt $MIN_FREE ]]; then
-                    nhc_common_unparse_size $MIN_FREE MIN_FREE
-                    nhc_common_unparse_size $FS_FREE FS_FREE
-                    die 1 "$FUNCNAME:  $FS has only $FS_FREE free, minimum is $MIN_FREE"
+                    nhc_common_unparse_size "$MIN_FREE" MIN_FREE
+                    nhc_common_unparse_size "$FS_FREE" FS_FREE
+                    die 1 "${FUNCNAME[0]}:  $FS has only $FS_FREE free, minimum is $MIN_FREE"
                     return 1
                 fi
             fi
@@ -436,15 +436,15 @@ function check_fs_used() {
             if [[ "${MAX_USED/%%}" != "$MAX_USED" ]]; then
                 if [[ ${DF_PCT[$i]} -ge "${MAX_USED/%%}" ]]; then
                     nhc_common_unparse_size $FS_USED FS_USED
-                    die 1 "$FUNCNAME:  $FS is ${DF_PCT[$i]}% full ($FS_USED), threshold is $MAX_USED"
+                    die 1 "${FUNCNAME[0]}:  $FS is ${DF_PCT[$i]}% full ($FS_USED), threshold is $MAX_USED"
                     return 1
                 fi
             else
-                nhc_common_parse_size $MAX_USED MAX_USED
+                nhc_common_parse_size "$MAX_USED" MAX_USED
                 if [[ $FS_USED -ge $MAX_USED ]]; then
-                    nhc_common_unparse_size $MAX_USED MAX_USED
-                    nhc_common_unparse_size $FS_USED FS_USED
-                    die 1 "$FUNCNAME:  $FS has $FS_USED used, threshold is $MAX_USED"
+                    nhc_common_unparse_size "$MAX_USED" MAX_USED
+                    nhc_common_unparse_size "$FS_USED" FS_USED
+                    die 1 "${FUNCNAME[0]}:  $FS has $FS_USED used, threshold is $MAX_USED"
                     return 1
                 fi
             fi
@@ -481,13 +481,13 @@ function check_fs_inodes() {
         fi
         FS_INODES=${DFI_INODES[$i]}
         if [[ -n "$MIN_INODES" && $MIN_INODES -gt $FS_INODES ]]; then
-            nhc_common_unparse_count $MIN_INODES MIN_INODES
-            die 1 "$FUNCNAME:  $FS inodes $FS_INODES less than minimum of $MIN_INODES"
+            nhc_common_unparse_count "$MIN_INODES" MIN_INODES
+            die 1 "${FUNCNAME[0]}:  $FS inodes $FS_INODES less than minimum of $MIN_INODES"
             return 1
         fi
         if [[ -n "$MAX_INODES" && $MAX_INODES -lt $FS_INODES ]]; then
-            nhc_common_unparse_count $MAX_INODES MAX_INODES
-            die 1 "$FUNCNAME:  $FS inodes $FS_INODES exceeds maximum of $MAX_INODES"
+            nhc_common_unparse_count "$MAX_INODES" MAX_INODES
+            die 1 "${FUNCNAME[0]}:  $FS inodes $FS_INODES exceeds maximum of $MAX_INODES"
             return 1
         fi
         return 0
@@ -519,14 +519,14 @@ function check_fs_ifree() {
             FS_IFREE=${DFI_IFREE[$i]}
             if [[ "${MIN_IFREE/%%}" != "$MIN_IFREE" ]]; then
                 if [[ $IFREE_PCT -lt "${MIN_IFREE/%%}" ]]; then
-                    die 1 "$FUNCNAME:  $FS has only ${IFREE_PCT}% of inodes free ($FS_IFREE), minimum is $MIN_IFREE"
+                    die 1 "${FUNCNAME[0]}:  $FS has only ${IFREE_PCT}% of inodes free ($FS_IFREE), minimum is $MIN_IFREE"
                     return 1
                 fi
             else
-                nhc_common_parse_count $MIN_IFREE MIN_IFREE
+                nhc_common_parse_count "$MIN_IFREE" MIN_IFREE
                 if [[ $FS_IFREE -lt $MIN_IFREE ]]; then
-                    nhc_common_unparse_count $MIN_IFREE MIN_IFREE
-                    die 1 "$FUNCNAME:  $FS has only $FS_IFREE inodes free, minimum is $MIN_IFREE"
+                    nhc_common_unparse_count "$MIN_IFREE" MIN_IFREE
+                    die 1 "${FUNCNAME[0]}:  $FS has only $FS_IFREE inodes free, minimum is $MIN_IFREE"
                     return 1
                 fi
             fi
@@ -559,14 +559,14 @@ function check_fs_iused() {
             FS_IUSED=${DFI_IUSED[$i]}
             if [[ "${MAX_IUSED/%%}" != "$MAX_IUSED" ]]; then
                 if [[ ${DFI_PCT[$i]} -ge "${MAX_IUSED/%%}" ]]; then
-                    die 1 "$FUNCNAME:  $FS has ${DFI_PCT[$i]}% of inodes used ($FS_IUSED), threshold is $MAX_IUSED"
+                    die 1 "${FUNCNAME[0]}:  $FS has ${DFI_PCT[$i]}% of inodes used ($FS_IUSED), threshold is $MAX_IUSED"
                     return 1
                 fi
             else
-                nhc_common_parse_count $MAX_IUSED MAX_IUSED
+                nhc_common_parse_count "$MAX_IUSED" MAX_IUSED
                 if [[ $FS_IUSED -ge $MAX_IUSED ]]; then
-                    nhc_common_unparse_count $MAX_IUSED MAX_IUSED
-                    die 1 "$FUNCNAME:  $FS has $FS_IUSED inodes used, threshold is $MAX_IUSED"
+                    nhc_common_unparse_count "$MAX_IUSED" MAX_IUSED
+                    die 1 "${FUNCNAME[0]}:  $FS has $FS_IUSED inodes used, threshold is $MAX_IUSED"
                     return 1
                 fi
             fi
@@ -577,20 +577,6 @@ function check_fs_iused() {
 }
 
 # https://stackoverflow.com/questions/14366390/check-if-an-element-is-present-in-a-bash-array
-array_contains2 () {
-    local array="$1[@]"
-    local seeking=$2
-    local in=1
-    for element in "${!array}"; do
-        if [[ $element == "$seeking" ]]; then
-            in=0
-            break
-        fi
-    done
-    die 1 "Not found $seeking in ${!array[*]}"
-    return $in
-}
-
 array_contains () {
     local seeking=$1; shift
     local in=1
@@ -634,7 +620,7 @@ function check_all_local_fs_free() {
         if [ "$FS_EXCLUSIONS" -gt 0 ] && array_contains "${FS_TYPE[$i]}" "${FS_EXCLUDED[@]}"; then
             continue
         fi
-        
+
         if [ $FS_CHECKS -ne 0 ] && ! array_contains "${FS_TYPE[$i]}" "${FS_CHECKED[@]}"; then
             continue
         fi
