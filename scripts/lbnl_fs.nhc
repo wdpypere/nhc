@@ -90,6 +90,9 @@ function nhc_fs_df_gather_data() {
         DF_FREE[$DF_CNT]="${FIELD[4]}"
         DF_PCT[$DF_CNT]="${FIELD[5]%%%}"
         DF_MNTPT[$DF_CNT]="${FIELD[6]}"
+        if [[ "${DF_TYPE[$DF_CNT]}" == "-" ]]; then
+            continue
+        fi
         if [[ "${DF_SIZE[$DF_CNT]}" == "-" ]]; then
             DF_SIZE[$DF_CNT]=0
         fi
@@ -382,7 +385,7 @@ function check_fs_free() {
             continue
         fi
         if [[ "${DF_SIZE[$i]}" == "0" ]]; then
-            syslog "WARNING:  Possible bogus check:  ${FUNCNAME[0]} on pseudofilesystem $FS"
+            syslog "WARNING:  Possible bogus check:  ${FUNCNAME[0]} on pseudofilesystem $FS (${DF_MNTPT[$i]} ${DF_DEV[$i]} ${DF_TYPE[$i]} ${DF_SIZE[$i]} ${DF_USED[$i]})"
             return 0
         fi
         if [[ -n "$MIN_FREE" ]]; then
@@ -602,11 +605,12 @@ array_contains () {
 
 # Checks the local file systems for free space with a warning and critical threshold
 function check_all_local_fs_free() {
-    local THRESHOLD=0, FS_EXCLUSIONS=0, FS_CHECKS=0
+    local THRESHOLD=0 FS_EXCLUSIONS=0 FS_CHECKS=0
     local FS_EXCLUDED=( )
     local FS_CHECKED=( )
+
     OPTIND=1
-    while getopts ":t:X:" OPTION ; do
+    while getopts ":t:X:C:" OPTION ; do
         case "$OPTION" in
             t) THRESHOLD="$OPTARG" ;;
             X) FS_EXCLUDED[$FS_EXCLUSIONS]="$OPTARG" ; ((FS_EXCLUSIONS++)) ;;
@@ -625,21 +629,23 @@ function check_all_local_fs_free() {
         }
     fi
 
-    #die 1 "here: ${FS_EXCLUDED[*]}  -- ${FS_TYPE[*]}"
     for ((i=0; i < ${#FS_MNTPT[*]}; i++)); do
 
-        if [ $FS_EXCLUSIONS -gt 0 ] && array_contains "${FS_TYPE[$i]}" "${FS_EXCLUDED[@]}"; then
+        if [ "$FS_EXCLUSIONS" -gt 0 ] && array_contains "${FS_TYPE[$i]}" "${FS_EXCLUDED[@]}"; then
+            continue
+        fi
+        
+        if [ $FS_CHECKS -ne 0 ] && ! array_contains "${FS_TYPE[$i]}" "${FS_CHECKED[@]}"; then
             continue
         fi
 
-        if [ $FS_CHECKS -eq 0 ] || ! array_contains "${FS_TYPE[$i]}" "${FS_CHECKED[@]}"; then
-            continue
-        fi
-
-        if check_fs_size "${FS_MNTPT[$i]}" "$THRESHOLD"; then
+        if ! check_fs_free "${FS_MNTPT[$i]}" "$THRESHOLD"; then
             die 1 "$CHECK: Free space on ${FS_MNTPT[$i]} less than $THRESHOLD"
             return 1
         fi
+
+        #syslog "INFO: FS ${FS_MNTPT[$i]} free space over threshold of $THRESHOLD"
+
     done
 
     return 0
