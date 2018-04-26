@@ -12,7 +12,7 @@ function check_group_member() {
 
     OPTIND=1
     while getopts ":t:g:" OPTION; do
-        case "$OPTIONS" in
+        case "$OPTION" in
             t) TIMEOUT="$OPTARG" ;;
             g) GROUP="$OPTARG" ;;
             -) ((OPTIND++)) ; break ;;
