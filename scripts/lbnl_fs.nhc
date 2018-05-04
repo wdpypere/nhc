@@ -167,6 +167,7 @@ function check_fs_mount() {
     local REMOUNT=0 NONFATAL=0 MOUNT_OPTS="" ACTION="" FOUND_ACTION="" TOUCH_ACTION=0
     local -a AUTOFS_LIST FS_LIST SRC_LIST TYPE_LIST OPTIONS_LIST
     local i FOUND MSG
+    local OPTION
 
     if [[ "${FS##/}" != "$FS" ]]; then
         # First parameter starts with a '/'.  Use the old syntax.
@@ -595,8 +596,9 @@ function check_all_local_fs_free() {
     local THRESHOLD=0 FS_EXCLUSIONS=0 FS_CHECKS=0
     local FS_EXCLUDED=( )
     local FS_CHECKED=( )
+    local OPTION
 
-    OPTIND=1
+    local OPTIND=1
     while getopts ":t:X:C:" OPTION ; do
         case "$OPTION" in
             t) THRESHOLD="$OPTARG" ;;
@@ -644,8 +646,9 @@ function check_all_local_fs_mount_check_found_action() {
     local THRESHOLD=0 FS_EXCLUSIONS=0 FS_CHECKS=0
     local FS_EXCLUDED=( )
     local FS_CHECKED=( )
+    local OPTION
 
-    OPTIND=1
+    local OPTIND=1
     while getopts ":t:X:C:E:" OPTION ; do
         case "$OPTION" in
             X) FS_EXCLUDED[$FS_EXCLUSIONS]="$OPTARG" ; ((FS_EXCLUSIONS++)) ;;
