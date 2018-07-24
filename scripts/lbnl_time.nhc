@@ -13,7 +13,7 @@ function check_ptpd_drift() {
         die 1 "$FUNCNAME: No $NHC_PTPD_STATUS file found"
         return 1
     fi
-    DRIFT=$(grep "Offset from Master" < "$NHC_PTPD_STATUS" | tr -s " " | cut -d" " -f5)
+    DRIFT=$(grep "Offset from Master" "$NHC_PTPD_STATUS" | tr -s " " | cut -d" " -f5)
     dbg "$FUNCNAME: drift is $DRIFT"
 
     if [ -z "${DRIFT+x}" ]; then
