@@ -8,7 +8,7 @@ GETENT_CMD="${GETENT:-getent}"
 # syntax: check_group_member [-t timeout] -g group
 function check_group_member() {
     local TIMEOUT=10
-    local GROUP="" WHOLEGROUP=""
+    local GROUP="" WHOLEGROUP="" USER=""
 
     OPTIND=1
     while getopts ":t:g:" OPTION; do
