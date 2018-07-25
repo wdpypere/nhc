@@ -641,9 +641,9 @@ function check_all_local_fs_free() {
 }
 
 
-# Checks the local file systems for free space with a warning and critical threshold
+# Checks the local file systems and execute a touch action
 function check_all_local_fs_mount_check_found_action() {
-    local THRESHOLD=0 FS_EXCLUSIONS=0 FS_CHECKS=0
+    local FS_EXCLUSIONS=0 FS_CHECKS=0
     local FS_EXCLUDED=( )
     local FS_CHECKED=( )
     local OPTION
