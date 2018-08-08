@@ -16,7 +16,7 @@ function check_ptpd_drift() {
     DRIFT=$(grep "Offset from Master" "$NHC_PTPD_STATUS" | tr -s " " | cut -d" " -f5)
     dbg "$FUNCNAME: drift is $DRIFT"
 
-    if [ -z "${DRIFT+x}" ]; then
+    if [ -z "${DRIFT}" ]; then
             die 1 "$FUNCNAME: No drift line found in $NHC_PTPD_STATUS"
             return 1
     fi
