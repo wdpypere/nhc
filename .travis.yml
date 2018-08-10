@@ -3,6 +3,6 @@ language: c
 dist: trusty
 cache: ccache
 script:
-  - ./autogent.sh
+  - ./autogen.sh
   - ./configure
   - make test
