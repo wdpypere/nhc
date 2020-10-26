@@ -57,7 +57,7 @@ function check_chrony_drift() {
     fi
 
     if (( $(echo "${DRIFT#-} > $NHC_CHRONYC_MAX_DRIFT " | bc -l) )); then
-        die 1 "$FUNCNAME: CHRONY drift too high: ${DRIFT} with threshold $NHC_CHRONY_MAX_DRIFT"
+        die 1 "$FUNCNAME: CHRONY drift too high: ${DRIFT} with threshold $NHC_CHRONYC_MAX_DRIFT"
         return 1
     fi
 
