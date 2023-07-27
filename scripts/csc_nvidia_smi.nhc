@@ -5,7 +5,7 @@
 #
 
 NVIDIA_SMI_HEALTHMON="${NVIDIA_SMI_HEALTHMON:-nvidia-smi}"
-NVIDIA_SMI_HEALTHMON_ARGS="${NVIDIA_SMI_HEALTHMON_ARGS}"
+NVIDIA_SMI_HEALTHMON_ARGS="${NVIDIA_SMI_HEALTHMON_ARGS:--q}"
 
 NVSMI_HEALTHMON_LINES=( )
 NVSMI_HEALTHMON_OUTPUT=""
@@ -62,6 +62,27 @@ function check_nvsmi_healthmon() {
     else
         log "$FUNCNAME:  $NVIDIA_SMI_HEALTHMON:  \"$NVSMI_HEALTHMON_OUTPUT\""
         die 1 "$FUNCNAME:  $NVIDIA_SMI_HEALTHMON:  Returned failure code $NVSMI_HEALTHMON_RC"
+        return 1
+    fi
+}
+
+function check_nvmsi_number() {
+    check_nvsmi_healthmon
+
+    local num unkn exp
+    num=$(echo "$NVSMI_HEALTHMON_OUTPUT" | grep 'Attached GPU' | sed "s/.*://;s/ //g")
+
+    exp="${1:-100000}"
+    if [[ "$exp" -ne "$num" ]]; then
+        log "$FUNCNAME:  $NVIDIA_SMI_HEALTHMON:  expected number $exp different from attached gpus $num"
+        die 1 "$FUNCNAME:  $NVIDIA_SMI_HEALTHMON:  expected number $exp different from attached gpus $num"
+        return 1
+    fi
+
+    unkn=$(echo "$NVSMI_HEALTHMON_OUTPUT" | grep -i 'Unknown Error' | wc -l)
+    if [[ "$unkn" -gt 0 ]]; then
+        log "$FUNCNAME:  $NVIDIA_SMI_HEALTHMON:  $unkn Unknown Errors found"
+        die 1 "$FUNCNAME:  $NVIDIA_SMI_HEALTHMON:  $unkn Unknown Errors found"
         return 1
     fi
 }
