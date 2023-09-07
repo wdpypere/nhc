@@ -80,9 +80,10 @@ function check_nvmsi_number() {
     fi
 
     filter="NOMATCH"
-    if $(systemd-detect-virt 2>/dev/null); then
+    if ! $(systemd-detect-virt 2>/dev/null); then
         filter="Host Max"
     fi
+
     unkn=$(echo "$NVSMI_HEALTHMON_OUTPUT" | grep -i 'Unknown Error' | grep -v "$filter" | wc -l)
 
     if [[ "$unkn" -gt 0 ]]; then
