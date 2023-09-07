@@ -79,10 +79,11 @@ function check_nvmsi_number() {
         return 1
     fi
 
+    filter="NOMATCH"
     if $(systemd-detect-virt 2>/dev/null); then
-        unkn=$(echo "$NVSMI_HEALTHMON_OUTPUT" | grep -i 'Unknown Error' | wc -l)
-    else
-        unkn=$(echo "$NVSMI_HEALTHMON_OUTPUT" | grep -i 'Unknown Error' | grep -v "Host Max" | wc -l)
+        filter="Host Max"
+    fi
+        unkn=$(echo "$NVSMI_HEALTHMON_OUTPUT" | grep -i 'Unknown Error' | grep -v "$filter" | wc -l)
     fi
 
     if [[ "$unkn" -gt 0 ]]; then
